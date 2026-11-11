@@ -1,0 +1,14 @@
+{
+  "name": "fixtrck",
+  "displayName": "FixTrck",
+  "version": "0.3.0",
+  "description": "Campus facility repair reporting and tracking app",
+  "devDependencies": {
+    "cordova-android": "^15.1.0"
+  },
+  "cordova": {
+    "platforms": [
+      "android"
+    ]
+  }
+}

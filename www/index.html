@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- CSP: already allows Firebase domains so you can connect it later without silent failures -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FixTrck</title>
+<style>
+:root{--coral:#f95c5c;--coral-d:#c13434;--cream:#fff9dc;--ink:#4a1c1c;--mute:#9b5f58;--line:#f0d9b8;--yellow:#ffd34d;--lime:#b9f56b;
+--navy:var(--coral);--navy2:#d94444;--gold:var(--yellow);--bg:var(--coral);--card:var(--cream);--ok:#2c6e1f;--warn:#9a6200;--bad:#c0392b;
+--font:"Poppins","Quicksand","Nunito","Varela Round",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font:15px/1.45 var(--font);background:var(--coral);color:var(--ink)}
+#app{display:flex;flex-direction:column;height:100%;max-width:520px;margin:0 auto;background:var(--coral)}
+
+/* header: avatar, burger, logo, top tabs */
+header{flex:none;position:relative;background:var(--cream);padding:calc(12px + env(safe-area-inset-top,0px)) 16px 0}
+.top{display:flex;align-items:center;justify-content:space-between}
+.who{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:var(--coral);background:none;border:0;padding:0;font-family:inherit;cursor:pointer}
+.av{width:28px;height:28px;border-radius:50%;flex:none;object-fit:cover;display:block}
+.pfp{width:110px;height:110px;border-radius:50%;object-fit:cover;display:block;margin:4px auto 12px;background:#b3b3b3}
+.pfp-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:14px}
+.pfp-row .btn{margin:0}
+.filebtn{position:relative;overflow:hidden}
+.filebtn input{position:absolute;inset:0;opacity:0;width:100%;height:100%;margin:0;cursor:pointer}
+.burger{background:none;border:0;width:30px;height:22px;padding:0;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer}
+.burger i{display:block;height:2px;border-radius:2px;background:var(--coral)}
+.menu{position:absolute;right:14px;top:calc(46px + env(safe-area-inset-top,0px));z-index:5;background:#fff;border-radius:14px;box-shadow:0 6px 18px rgba(74,28,28,.25);padding:6px}
+.menu button{display:block;width:100%;text-align:left;background:none;border:0;font:inherit;font-weight:700;color:var(--coral);padding:8px 18px;cursor:pointer}
+.logo{display:block;text-align:center;font-weight:800;font-size:30px;line-height:1;letter-spacing:1px;color:var(--coral);margin-top:-2px}
+.logo span{display:inline-block;background:var(--coral);color:var(--cream);padding:2px 5px;margin-right:3px}
+.tabs{display:flex;justify-content:space-between;padding:22px 4px 14px}
+.tabs button{position:relative;background:none;border:0;font:inherit;font-weight:700;font-size:16px;color:var(--coral);padding:2px 0 3px;border-bottom:3px solid transparent;cursor:pointer}
+.tabs button.on{border-bottom-color:var(--coral)}
+.tabs .dot{position:absolute;top:-8px;right:-16px;background:var(--ink);color:var(--cream);font-size:10px;font-weight:700;min-width:16px;height:16px;line-height:16px;border-radius:8px;padding:0 4px}
+
+main{flex:1;overflow-y:auto;padding:26px 16px 20px}
+main>.meta,main>p.meta{color:var(--cream)}
+.back{background:var(--cream);color:var(--coral);border:0;border-radius:20px;padding:6px 14px;font:inherit;font-weight:700;margin-bottom:14px;cursor:pointer}
+
+/* bottom status pills */
+.pills{flex:none;display:flex;gap:8px;justify-content:space-between;padding:10px 12px calc(14px + env(safe-area-inset-bottom,0px))}
+.pills button{border:0;border-radius:20px;padding:6px 14px;font:inherit;font-weight:700;font-size:13px;color:var(--coral-d);cursor:pointer}
+.pills button.on{box-shadow:0 0 0 3px var(--ink)}
+
+/* cards */
+.card{background:var(--cream);border:0;border-radius:24px;padding:16px;margin-bottom:14px;color:var(--ink)}
+.card h2{color:var(--coral)}
+.item{display:flex;gap:12px;cursor:pointer}
+.thumb{width:68px;height:68px;border-radius:16px;background:#ffe9c9;flex:none;object-fit:cover;display:flex;align-items:center;justify-content:center;font-size:28px}
+.item h3{font-size:15px;margin-bottom:2px;color:var(--coral-d)}
+.meta{color:var(--mute);font-size:12.5px}
+.tag{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 10px;border-radius:20px;margin-right:4px}
+.s-submitted{background:#ffe3df;color:var(--coral-d)}.s-in_progress{background:var(--yellow);color:#5c3d00}.s-resolved{background:var(--lime);color:#2c5a0a}
+.p-high{background:var(--bad);color:#fff}.p-medium{background:#ffe8a8;color:#7a4b00}.p-low{background:#f1e7d0;color:var(--mute)}
+.t-dup{background:#efe6fb;color:#6b3fa0}
+
+/* forms */
+input,select,textarea{width:100%;padding:12px;border:0;border-radius:14px;font:inherit;background:var(--cream);color:var(--ink);margin:4px 0 10px}
+.card input,.card select,.card textarea{background:#fff;border:2px solid var(--line)}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
+label{font-size:13px;font-weight:700;color:var(--cream)}
+.card label{color:var(--ink)}
+.btn{display:block;width:100%;border:0;border-radius:14px;padding:12px;font:inherit;font-weight:700;background:var(--coral);color:var(--cream);cursor:pointer}
+main>.btn{background:var(--cream);color:var(--coral)}
+.btn.gold{background:var(--yellow);color:var(--ink)}.btn.ghost{background:var(--cream);color:var(--coral);border:2px solid var(--coral)}
+.btn.sm{display:inline-block;width:auto;padding:7px 14px;font-size:13px;margin:6px 6px 0 0}.btn.bad{background:var(--bad);color:#fff}.btn.ok{background:var(--ok);color:#fff}
+.types{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:4px 0 12px}
+.types button{border:2px solid transparent;background:var(--cream);border-radius:16px;padding:8px 2px;font:inherit;font-size:12px;font-weight:600;color:var(--ink)}
+.types button b{display:block;font-size:22px;font-weight:400}
+.types button.on{border-color:var(--ink);background:var(--yellow)}
+.seg{display:flex;gap:6px;margin:4px 0 12px}.seg button{flex:1;padding:9px 4px;border-radius:12px;border:2px solid var(--line);background:#fff;color:var(--ink);font:inherit;font-size:13px;font-weight:700}
+.seg button.on{background:var(--coral);color:var(--cream);border-color:var(--coral)}
+.seg button.on.p-high{background:var(--bad);border-color:var(--bad);color:#fff}.seg button.on.p-medium{background:var(--warn);border-color:var(--warn);color:#fff}
+.empty{text-align:center;color:var(--cream);padding:36px 10px}
+
+/* login */
+.login{flex:1;overflow-y:auto;padding:calc(36px + env(safe-area-inset-top,0px)) 16px 24px}
+.lcard{background:var(--cream);border-radius:40px;padding:22px 24px 20px}
+.lcard .logo{font-size:36px;margin:0}
+.tag-line{text-align:center;font-size:13px;color:var(--ink);margin:8px 0 22px}
+.lform{max-width:350px;margin:0 auto}
+.lform label{display:block;color:var(--ink);font-size:12px}
+.lform input{background:#fff;border:2px solid var(--line);border-radius:14px;padding:9px 12px;margin:4px 0 12px}
+.lform .btn{border-radius:14px;padding:11px;margin-top:6px}
+.lform .new{text-align:center;margin-top:10px;color:var(--mute)}
+.lform .new a{color:var(--coral);font-weight:600}
+.demo{text-align:center;color:var(--cream);font-size:12px;margin-top:16px;opacity:.9}
+
+.pick{background:var(--cream);border-radius:18px;padding:12px;margin:10px 0;font-size:14px;color:var(--ink)}
+.pick.dup{background:#f4eefc}
+.photo{width:100%;max-height:240px;object-fit:cover;border-radius:20px;margin-bottom:12px}
+.err{color:#6b0f0f;font-weight:600;font-size:13px;margin:-4px 0 10px}
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:var(--cream);padding:9px 16px;border-radius:20px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center}
+#toast.on{opacity:1}
+h2{font-size:16px;margin:14px 0 8px;color:var(--cream)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.stats.three{grid-template-columns:1fr 1fr 1fr}
+.stat{background:var(--cream);border:0;border-radius:18px;padding:10px 12px;text-align:left;font:inherit;font-size:12.5px;font-weight:600;color:var(--mute)}
+.stat b{display:block;font-size:24px;color:var(--coral)}
+.tl{display:flex;gap:10px;margin:8px 0}.tl i{width:10px;height:10px;border-radius:50%;background:var(--coral);margin-top:5px;flex:none}
+.filters{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}.filters select{margin:0 0 8px;padding:8px 6px;font-size:13px}
+.unread{border-left:6px solid var(--yellow)}
+#offline{background:var(--ink);color:var(--cream);text-align:center;font-size:13px;padding:4px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast" role="status"></div>
+<script src="cordova.js"></script>
+<script>
+/* ===== Mock data (replace with Firestore calls later) ===== */
+var TYPES=[["Chair","🪑"],["Light","💡"],["Aircon","❄️"],["Outlet","🔌"],["Projector","📽️"],["Wi-Fi","📶"],["Other","🔧"]];
+var BLDGS=["Main Building","Science Building","Library","Gym","Chapel","Canteen","Other"];
+var PRIOS=["low","medium","high"];
+var STATUSES=["submitted","in_progress","resolved"];
+var EMAIL_DOMAIN="@xu.edu.ph";
+function ago(h){return new Date(Date.now()-h*3600000).toISOString()}
+var db={
+ users:[{email:"maintenance@xu.edu.ph",name:"Maintenance Office",staff:true},{email:"student@xu.edu.ph",name:"Student",staff:false},{email:"maria@xu.edu.ph",name:"Maria",staff:false}],
+ reports:[
+  {id:1,type:"Aircon",bld:"Science Building",room:"Room 305",desc:"Aircon runs but only blows warm air",owner:"student@xu.edu.ph",status:"in_progress",prio:"high",photo:"",
+   history:[{s:"submitted",at:ago(52)},{s:"in_progress",at:ago(20)}],remarks:[{text:"Technician scheduled for tomorrow morning.",at:ago(20)}]},
+  {id:2,type:"Light",bld:"Library",room:"2nd floor reading area",desc:"Ceiling light keeps flickering",owner:"student@xu.edu.ph",status:"submitted",prio:"",photo:"",
+   history:[{s:"submitted",at:ago(5)}],remarks:[]},
+  {id:3,type:"Outlet",bld:"Main Building",room:"Room 201",desc:"Exposed wires on the outlet near the whiteboard",owner:"maria@xu.edu.ph",status:"submitted",prio:"",photo:"",
+   history:[{s:"submitted",at:ago(3)}],remarks:[]},
+  {id:4,type:"Aircon",bld:"Science Building",room:"Room 305",desc:"Aircon in 305 is not cooling",owner:"maria@xu.edu.ph",status:"submitted",prio:"",photo:"",
+   history:[{s:"submitted",at:ago(2)}],remarks:[]},
+  {id:5,type:"Projector",bld:"Main Building",room:"Room 102",desc:"Projector shows no display via HDMI",owner:"student@xu.edu.ph",status:"resolved",prio:"medium",photo:"",
+   history:[{s:"submitted",at:ago(170)},{s:"in_progress",at:ago(150)},{s:"resolved",at:ago(140)}],remarks:[{text:"Replaced HDMI cable.",at:ago(140)}]},
+  {id:6,type:"Wi-Fi",bld:"Library",room:"1st floor",desc:"Wi-Fi keeps dropping every few minutes",owner:"maria@xu.edu.ph",status:"resolved",prio:"medium",photo:"",
+   history:[{s:"submitted",at:ago(240)},{s:"in_progress",at:ago(230)},{s:"resolved",at:ago(200)}],remarks:[{text:"Access point restarted and firmware updated.",at:ago(200)}]},
+  {id:7,type:"Aircon",bld:"Science Building",room:"Room 305",desc:"Water dripping from the aircon unit",owner:"maria@xu.edu.ph",status:"resolved",prio:"medium",photo:"",
+   history:[{s:"submitted",at:ago(500)},{s:"in_progress",at:ago(480)},{s:"resolved",at:ago(470)}],remarks:[{text:"Drain line cleared.",at:ago(470)}]}
+ ],
+ notifs:[{id:1,to:"student@xu.edu.ph",rid:1,text:"Your Aircon report (#1) is now In Progress.",at:ago(20),read:false}],
+ nid:8,nn:2
+};
+var S={user:null,view:"login",reg:false,sel:null,back:"home",sf:"all",ptype:"Aircon",photo:"",
+ atab:"dash",df:{st:"all",ty:"all",bl:"all",pr:"all",q:""},hq:""};
+
+/* ===== Helpers ===== */
+function $(id){return document.getElementById(id)}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function toast(m){var t=$("toast");t.textContent=m;t.className="on";setTimeout(function(){t.className=""},2200)}
+function label(s){return{submitted:"Submitted",in_progress:"In Progress",resolved:"Resolved",low:"Low",medium:"Medium",high:"High"}[s]||s}
+function ico(t){var x=TYPES.filter(function(a){return a[0]===t})[0];return x?x[1]:"🔧"}
+function fmt(iso){var d=new Date(iso);return d.toLocaleDateString("en-PH",{month:"short",day:"numeric"})+", "+d.toLocaleTimeString("en-PH",{hour:"numeric",minute:"2-digit"})}
+function rep(id){return db.reports.filter(function(r){return r.id==id})[0]}
+function home(){return S.user&&S.user.staff?"dash":"mine"}
+function go(v,id){S.menu=false;if(v==="detail")S.back=S.view==="detail"?S.back:S.view;if(id!==undefined)S.sel=id;S.view=v;draw()}
+function setNav(t){S.menu=false;S.view=t;draw()}
+function notify(to,rid,text){db.notifs.push({id:db.nn++,to:to,rid:rid,text:text,at:new Date().toISOString(),read:false})}
+function unread(){return db.notifs.filter(function(n){return n.to===S.user.email&&!n.read}).length}
+function same(a,b){return a.type===b.type&&a.bld===b.bld&&a.room.trim().toLowerCase()===b.room.trim().toLowerCase()}
+function dups(r){return r.status==="resolved"?[]:db.reports.filter(function(o){return o.id!==r.id&&o.status!=="resolved"&&same(o,r)})}
+function pw(r){return{high:0,medium:1,low:2}[r.prio]!==undefined?{high:0,medium:1,low:2}[r.prio]:3}
+
+/* ===== Views ===== */
+var AVATAR_SVG='<svg class="%C" viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="14" fill="#b3b3b3"/><circle cx="14" cy="11" r="5" fill="#e8e8e8"/><path d="M4 25c1-6 6-8 10-8s9 2 10 8z" fill="#e8e8e8"/></svg>';
+function avatar(src,cls){return src?'<img class="'+cls+'" src="'+src+'" alt="">':AVATAR_SVG.replace("%C",cls)}
+function openProfile(){S.menu=false;if(S.view!=="profile")S.back=S.view;S.ppic=undefined;S.pname=undefined;S.view="profile";draw()}
+function vProfile(){
+ var u=S.user,pic=S.ppic!==undefined?S.ppic:u.photo,nm=S.pname!==undefined?S.pname:u.name;
+ return '<div class="card"><h2 style="margin-top:0">Edit profile</h2>'+avatar(pic,"pfp")+
+ '<div class="pfp-row"><span class="btn sm ghost filebtn">Choose photo<input id="pp" type="file" accept="image/*" aria-label="Choose profile photo" onchange="pickAvatar(this)"></span>'+
+ (pic?'<button class="btn sm ghost" onclick="S.pname=$(\'pn\').value;S.ppic=\'\';draw()">Remove photo</button>':'')+'</div>'+
+ '<label>Name</label><input id="pn" value="'+esc(nm)+'" maxlength="40" autocomplete="name">'+
+ '<label>School email</label><input value="'+esc(u.email)+'" disabled>'+
+ '<div class="err" id="er"></div><button class="btn" onclick="saveProfile()">Save changes</button></div>';
+}
+function pickAvatar(inp){
+ var f=inp.files[0];if(!f)return;S.pname=$("pn").value;var rd=new FileReader();
+ rd.onload=function(){var im=new Image();im.onload=function(){
+  var side=Math.min(im.width,im.height),c=document.createElement("canvas");c.width=c.height=256;
+  c.getContext("2d").drawImage(im,(im.width-side)/2,(im.height-side)/2,side,side,0,0,256,256);
+  S.ppic=c.toDataURL("image/jpeg",.8);draw()};im.src=rd.result};
+ rd.readAsDataURL(f);
+}
+function saveProfile(){
+ var n=$("pn").value.trim();if(!n){$("er").textContent="Name can't be empty.";return}
+ S.user.name=n;if(S.ppic!==undefined)S.user.photo=S.ppic;
+ toast("Profile updated");go(S.back||home());
+}
+function vLogin(){
+ return '<div class="login"><div class="lcard"><div class="logo"><span>FIX</span>TRCK</div>'+
+ '<p class="tag-line">Want to report broken campus equipments? Log in or Sign Up</p>'+
+ '<div class="lform">'+
+ (S.reg?'<label>Full name</label><input id="nm" autocomplete="name">':'')+
+ '<label>School email</label><input id="em" type="email" placeholder="name'+EMAIL_DOMAIN+'" autocomplete="email">'+
+ '<label>Password</label><input id="pw" type="password">'+
+ '<div class="err" id="er"></div>'+
+ '<button class="btn" onclick="doAuth()">'+(S.reg?'Create account':'Log in')+'</button>'+
+ '<p class="meta new">'+(S.reg?'Have an account? ':'New here? ')+
+ '<a href="#" onclick="S.reg=!S.reg;draw();return false">'+(S.reg?'Log in':'Create student account')+'</a></p></div></div>'+
+ '<p class="demo">Demo: student@xu.edu.ph or maintenance@xu.edu.ph (any password)</p></div>';
+}
+function doAuth(){
+ var e=$("em").value.trim().toLowerCase(),p=$("pw").value,er=$("er");
+ if(e.slice(-EMAIL_DOMAIN.length)!==EMAIL_DOMAIN){er.textContent="Use your school email ending in "+EMAIL_DOMAIN;return}
+ if(p.length<6){er.textContent="Password must be at least 6 characters";return}
+ var u=db.users.filter(function(x){return x.email===e})[0];
+ if(S.reg){if(u){er.textContent="This email is already registered";return}
+  u={email:e,name:$("nm").value.trim()||e.split("@")[0],staff:false};db.users.push(u)}
+ else if(!u){er.textContent="No account found. Create one first.";return}
+ S.user=u;S.view=home();draw();
+}
+function tags(r,staff){
+ return '<span class="tag s-'+r.status+'">'+label(r.status)+'</span>'+(r.prio?'<span class="tag p-'+r.prio+'">'+label(r.prio)+' priority</span>':(staff&&r.status!=="resolved"?'<span class="tag p-low">No priority</span>':''))+
+  (staff&&dups(r).length?'<span class="tag t-dup">'+dups(r).length+' duplicate'+(dups(r).length>1?'s':'')+'</span>':'');
+}
+function card(r){
+ var st=S.user.staff;
+ return '<div class="card item" onclick="go(\'detail\','+r.id+')"><div class="thumb">'+(r.photo?'<img class="thumb" src="'+r.photo+'" alt="">':ico(r.type))+'</div><div style="min-width:0">'+
+ '<h3>'+esc(r.type)+' - '+esc(r.bld)+'</h3><div class="meta" style="margin-bottom:3px">'+esc(r.room)+'</div>'+tags(r,st)+
+ '<div class="meta" style="margin-top:3px">#'+r.id+' • '+fmt(r.history[0].at)+(st?' • '+esc(r.owner):'')+'</div></div></div>';
+}
+function vMine(){
+ var all=db.reports.filter(function(r){return r.owner===S.user.email}),
+  rs=all.filter(function(r){return S.sf==="all"||r.status===S.sf}).sort(function(a,b){return b.id-a.id});
+ function n(s){return all.filter(function(r){return r.status===s}).length}
+ return '<div class="stats three">'+STATUSES.map(function(s){return '<div class="stat"><b>'+n(s)+'</b>'+label(s)+'</div>'}).join("")+'</div>'+
+ (rs.length?rs.map(card).join(""):'<div class="empty">'+(all.length?'No reports with this status.':'No reports yet. Tap Add Report to submit one.')+'</div>');
+}
+function vPost(){
+ return '<label>Issue type</label><div class="types">'+TYPES.map(function(t){return '<button class="'+(S.ptype===t[0]?'on':'')+'" onclick="keep();S.ptype=\''+t[0]+'\';draw()"><b>'+t[1]+'</b>'+t[0]+'</button>'}).join("")+'</div>'+
+ '<label>Building</label><select id="bl">'+BLDGS.map(function(c){return '<option>'+c+'</option>'}).join("")+'</select>'+
+ '<label>Room / exact location</label><input id="rm" placeholder="e.g. Room 305">'+
+ '<label>Description</label><textarea id="de" rows="3" placeholder="What is wrong? Since when? Anything unsafe?"></textarea>'+
+ '<label>Photo (optional)</label><input id="ph" type="file" accept="image/*" onchange="pickPhoto(this)">'+
+ (S.photo?'<img class="photo" src="'+S.photo+'" alt="Preview">':'')+
+ '<div class="err" id="er"></div><button class="btn" onclick="sendReport()">Submit report</button>'+
+ '<p class="meta" style="margin-top:8px">Maintenance will review it and you will get an alert when the status changes.</p>';
+}
+function pickPhoto(inp){
+ var f=inp.files[0];if(!f)return;var rd=new FileReader();
+ rd.onload=function(){var im=new Image();im.onload=function(){
+  var w=Math.min(800,im.width),c=document.createElement("canvas");c.width=w;c.height=im.height*(w/im.width);
+  c.getContext("2d").drawImage(im,0,0,c.width,c.height);S.photo=c.toDataURL("image/jpeg",.7);keep();draw(true)};im.src=rd.result};
+ rd.readAsDataURL(f);
+}
+var draft={};
+function keep(){["bl","rm","de"].forEach(function(k){if($(k))draft[k]=$(k).value})}
+function sendReport(){
+ var rm=$("rm").value.trim(),de=$("de").value.trim(),er=$("er");
+ if(!rm){er.textContent="Enter the room or exact location.";return}
+ if(de.length<5){er.textContent="Add a short description (at least 5 characters).";return}
+ if(!navigator.onLine){er.textContent="No internet connection. Reports cannot be submitted offline.";return}
+ var r={id:db.nid++,type:S.ptype,bld:$("bl").value,room:rm,desc:de,owner:S.user.email,status:"submitted",prio:"",photo:S.photo,
+  history:[{s:"submitted",at:new Date().toISOString()}],remarks:[]};
+ var d=dups(r);db.reports.push(r);
+ S.photo="";draft={};toast(d.length?"Submitted. A similar report exists, staff will merge them.":"Report submitted.");setNav("mine");
+}
+function vDetail(){
+ var r=rep(S.sel);if(!r)return '<div class="empty">Report not found.</div>';
+ var st=S.user.staff,d=dups(r),h='';
+ h+=(r.photo?'<img class="photo" src="'+r.photo+'" alt="">':'')+
+ '<div class="card"><h2 style="margin-top:0">'+ico(r.type)+' '+esc(r.type)+'</h2>'+tags(r,false)+
+ '<p style="margin:10px 0">'+esc(r.desc)+'</p><div class="meta">Building: '+esc(r.bld)+'<br>Room: '+esc(r.room)+'<br>Reported by: '+esc(r.owner)+'<br>Report #'+r.id+'</div></div>';
+ if(st){
+  if(d.length)h+='<div class="pick dup"><b>'+d.length+' possible duplicate'+(d.length>1?'s':'')+'</b> (same issue, building and room): '+d.map(function(x){return '#'+x.id}).join(", ")+
+   '<br><button class="btn sm ghost" onclick="merge('+r.id+')">Merge into this report</button></div>';
+  h+='<div class="card"><b>Priority</b><div class="seg">'+PRIOS.map(function(p){return '<button class="p-'+p+' '+(r.prio===p?'on':'')+'" onclick="setPrio('+r.id+',\''+p+'\')">'+label(p)+'</button>'}).join("")+'</div>'+
+  '<b>Status</b><div class="seg">'+STATUSES.map(function(s){return '<button class="'+(r.status===s?'on':'')+'" onclick="setStatus('+r.id+',\''+s+'\')">'+label(s)+'</button>'}).join("")+'</div>'+
+  '<label>Add a remark for the student</label><textarea id="rk" rows="2" placeholder="Action taken, schedule, parts needed..."></textarea>'+
+  '<div class="err" id="er"></div><button class="btn sm" onclick="addRemark('+r.id+')">Add remark</button></div>';
+ }
+ h+='<h2>Progress</h2><div class="card">'+r.history.map(function(x){return '<div class="tl"><i></i><div><b>'+label(x.s)+'</b><div class="meta">'+fmt(x.at)+'</div></div></div>'}).join("")+'</div>';
+ if(r.remarks.length)h+='<h2>Maintenance remarks</h2>'+r.remarks.map(function(x){return '<div class="pick note"><b>Maintenance:</b> '+esc(x.text)+'<div class="meta">'+fmt(x.at)+'</div></div>'}).join("");
+ return h;
+}
+function setPrio(id,p){var r=rep(id);r.prio=p;toast("Priority set to "+label(p));draw()}
+function setStatus(id,s){
+ var r=rep(id);if(r.status===s)return;
+ r.status=s;r.history.push({s:s,at:new Date().toISOString()});
+ notify(r.owner,r.id,"Your "+r.type+" report (#"+r.id+") is now "+label(s)+".");
+ toast("Status updated, student notified");draw();
+}
+function addRemark(id){
+ var t=$("rk").value.trim();if(!t){$("er").textContent="Write a remark first.";return}
+ var r=rep(id);r.remarks.push({text:t,at:new Date().toISOString()});
+ notify(r.owner,r.id,"Maintenance added a remark on your "+r.type+" report (#"+r.id+").");
+ toast("Remark added");draw();
+}
+function merge(id){
+ var r=rep(id),n=0;
+ dups(r).forEach(function(o){
+  o.status="resolved";o.history.push({s:"resolved",at:new Date().toISOString()});
+  o.remarks.push({text:"Merged into report #"+r.id+" (same issue reported earlier).",at:new Date().toISOString()});
+  notify(o.owner,o.id,"Your "+o.type+" report (#"+o.id+") was merged into report #"+r.id+".");n++});
+ toast(n+" duplicate"+(n===1?"":"s")+" merged");draw();
+}
+function vNotifs(){
+ var ns=db.notifs.filter(function(n){return n.to===S.user.email}).sort(function(a,b){return b.id-a.id});
+ return (ns.length?'<button class="btn sm ghost" style="margin:0 0 10px" onclick="readAll()">Mark all as read</button>':'')+
+ (ns.length?ns.map(function(n){return '<div class="card item '+(n.read?'':'unread')+'" onclick="openNotif('+n.id+')"><div><div>'+esc(n.text)+'</div><div class="meta">'+fmt(n.at)+'</div></div></div>'}).join(""):'<div class="empty">No alerts yet. You will be notified when a report status changes.</div>');
+}
+function readAll(){db.notifs.forEach(function(n){if(n.to===S.user.email)n.read=true});draw()}
+function openNotif(id){var n=db.notifs.filter(function(x){return x.id===id})[0];n.read=true;S.back="notifs";S.sel=n.rid;S.view="detail";draw()}
+function sel(id,key,all,opts){
+ return '<select aria-label="'+all+'" onchange="S.df.'+key+'=this.value;draw()"><option value="all">'+all+'</option>'+opts.map(function(o){var v=o[0],l=o[1];return '<option value="'+esc(v)+'"'+(S.df[key]===v?' selected':'')+'>'+esc(l)+'</option>'}).join("")+'</select>';
+}
+function vDash(){
+ var R=db.reports,F=S.df;
+ function n(f){return R.filter(f).length}
+ var list=R.filter(function(r){
+  if(F.st!=="all"&&r.status!==F.st)return false;
+  if(F.ty!=="all"&&r.type!==F.ty)return false;
+  if(F.bl!=="all"&&r.bld!==F.bl)return false;
+  if(F.pr!=="all"&&(F.pr==="none"?r.prio:r.prio!==F.pr))return false;
+  var q=F.q.toLowerCase();return !q||(r.type+" "+r.bld+" "+r.room+" "+r.desc+" "+r.owner).toLowerCase().indexOf(q)>-1;
+ }).sort(function(a,b){return (a.status==="resolved")-(b.status==="resolved")||pw(a)-pw(b)||a.id-b.id});
+ return '<div class="stats">'+[["Submitted",n(function(r){return r.status==="submitted"}),"submitted"],["In progress",n(function(r){return r.status==="in_progress"}),"in_progress"],
+  ["High priority open",n(function(r){return r.prio==="high"&&r.status!=="resolved"}),null],["Resolved",n(function(r){return r.status==="resolved"}),"resolved"]].map(function(x){
+  return '<button class="stat" '+(x[2]?'onclick="S.df.st=\''+x[2]+'\';draw()"':'onclick="S.df.st=\'all\';S.df.pr=\'high\';draw()"')+'><b>'+x[1]+'</b>'+x[0]+'</button>'}).join("")+'</div>'+
+ '<input id="dq" placeholder="Search room, issue or email" value="'+esc(F.q)+'" oninput="S.df.q=this.value;draw(true)" style="margin-top:0">'+
+ '<div class="filters" style="grid-template-columns:1fr 1fr">'+sel("ty","ty","Issue",TYPES.map(function(t){return [t[0],t[0]]}))+sel("bl","bl","Building",BLDGS.map(function(b){return [b,b]}))+'</div>'+
+ '<div class="filters" style="grid-template-columns:1fr 2fr">'+sel("pr","pr","Priority",[["high","High"],["medium","Medium"],["low","Low"],["none","Unassigned"]])+
+ '<button class="btn sm ghost" style="margin:0 0 8px;padding:8px" onclick="S.df={st:\'all\',ty:\'all\',bl:\'all\',pr:\'all\',q:\'\'};draw()">Clear filters</button></div>'+
+ (list.length?list.map(card).join(""):'<div class="empty">No reports match these filters.</div>');
+}
+function vHistory(){
+ var g={};db.reports.forEach(function(r){var k=r.type+"|"+r.bld+"|"+r.room.trim().toLowerCase();(g[k]=g[k]||[]).push(r)});
+ var rec=Object.keys(g).filter(function(k){return g[k].length>1}).sort(function(a,b){return g[b].length-g[a].length});
+ var q=S.hq.toLowerCase(),all=db.reports.filter(function(r){return !q||(r.type+" "+r.bld+" "+r.room+" "+r.owner+" "+label(r.status)).toLowerCase().indexOf(q)>-1}).sort(function(a,b){return b.id-a.id});
+ return '<h2 style="margin-top:0">Recurring problems</h2>'+(rec.length?rec.map(function(k){var x=g[k][0];
+  return '<div class="card"><b>'+ico(x.type)+' '+esc(x.type)+' - '+esc(x.room)+'</b><div class="meta">'+esc(x.bld)+' • reported '+g[k].length+' times ('+g[k].filter(function(r){return r.status!=="resolved"}).length+' still open)</div>'+
+  '<div class="meta">Reports: '+g[k].map(function(r){return '<a href="#" onclick="go(\'detail\','+r.id+');return false" style="color:var(--navy)">#'+r.id+'</a>'}).join(", ")+'</div></div>'}).join(""):'<div class="meta">No repeated issues yet.</div>')+
+ '<h2>All records</h2><input id="hq" placeholder="Search issue, room, email or status" value="'+esc(S.hq)+'" oninput="S.hq=this.value;draw(true)">'+
+ (all.length?all.map(card).join(""):'<div class="empty">No records match.</div>');
+}
+
+/* ===== Shell ===== */
+var TITLES={mine:"My reports",post:"New report",notifs:"Alerts",dash:"Maintenance dashboard",history:"History & records",detail:"Report details"};
+function draw(keepFocus){
+ var a=$("app"),v=S.view;
+ persist();
+ if(!S.user){a.innerHTML=vLogin();return}
+ var sub=v==="detail"||v==="profile",ae=document.activeElement,pos=ae&&ae.id,st=pos&&ae.selectionStart;
+ var body={mine:vMine,post:vPost,notifs:vNotifs,dash:vDash,history:vHistory,detail:vDetail,profile:vProfile}[v]();
+ var u=unread(),staff=S.user.staff,
+  nav=staff?[["dash","Dashboard"],["history","History"],["notifs","Alerts"]]:[["mine","Dashboard"],["post","Add Report"],["notifs","Alerts"]],
+  cur=staff?S.df.st:S.sf,showPills=(v==="dash"||v==="mine"),
+  P=[["all","All","#fff"],["submitted","Submitted","var(--cream)"],["in_progress","In Progress","var(--yellow)"],["resolved","Resolved","var(--lime)"]];
+ a.innerHTML=(navigator.onLine?'':'<div id="offline">You are offline. Reports cannot be submitted.</div>')+
+ '<header><div class="top"><button class="who" onclick="openProfile()" aria-label="Edit profile">'+avatar(S.user.photo,"av")+esc(S.user.name)+'</button>'+
+ '<button class="burger" onclick="S.menu=!S.menu;draw()" aria-label="Menu" aria-expanded="'+(S.menu?'true':'false')+'"><i></i><i></i><i></i></button></div>'+
+ (S.menu?'<div class="menu"><button onclick="openProfile()">Edit profile</button><button onclick="S.menu=false;S.user=null;S.view=\'login\';draw()">Log out</button></div>':'')+
+ '<div class="logo"><span>FIX</span>TRCK</div>'+
+ '<div class="tabs">'+nav.map(function(n){return '<button class="'+(v===n[0]?'on':'')+'" onclick="setNav(\''+n[0]+'\')">'+n[1]+(n[0]==="notifs"&&u?'<span class="dot">'+u+'</span>':'')+'</button>'}).join("")+'</div></header>'+
+ '<main id="mn">'+(sub?'<button class="back" onclick="go(S.back||home())">\u2190 Back</button>':'')+body+'</main>'+
+ (showPills?'<footer class="pills">'+P.map(function(p){return '<button class="'+(cur===p[0]?'on':'')+'" style="background:'+p[2]+'" onclick="'+(staff?'S.df.st':'S.sf')+'=\''+p[0]+'\';draw()">'+p[1]+'</button>'}).join("")+'</footer>':'');
+ if(v==="post"){Object.keys(draft).forEach(function(k){if($(k)&&draft[k]!=null)$(k).value=draft[k]})}
+ if(keepFocus&&pos&&$(pos)){$(pos).focus();try{$(pos).setSelectionRange(st,st)}catch(e){}}
+}
+document.addEventListener("change",function(){if(S.view==="post")keep()});
+document.addEventListener("input",function(){if(S.view==="post")keep()});
+window.addEventListener("online",function(){draw(true)});
+window.addEventListener("offline",function(){draw(true)});
+/* ===== Persistence (localStorage) ===== */
+var KEY_DB="fixtrck.db",KEY_USER="fixtrck.user",warned=false;
+function persist(){
+ try{
+  localStorage.setItem(KEY_DB,JSON.stringify(db));
+  if(S.user)localStorage.setItem(KEY_USER,S.user.email);else localStorage.removeItem(KEY_USER);
+ }catch(e){if(!warned){warned=true;toast("Storage is full. Remove large photos to keep saving.")}}
+}
+function restore(){
+ try{
+  var raw=localStorage.getItem(KEY_DB);
+  if(raw){var d=JSON.parse(raw);
+   if(d&&Array.isArray(d.users)&&Array.isArray(d.reports)&&Array.isArray(d.notifs))db=d}
+  var em=localStorage.getItem(KEY_USER);
+  var u=em&&db.users.filter(function(x){return x.email===em})[0];
+  if(u){S.user=u;S.view=home()}
+ }catch(e){try{localStorage.removeItem(KEY_DB)}catch(x){}}
+}
+
+/* ===== Android back button ===== */
+function onBack(){
+ if(!S.user){if(S.reg){S.reg=false;draw()}else exitApp();return}
+ if(S.menu){S.menu=false;draw();return}
+ if(S.view==="detail"||S.view==="profile"){go(S.back||home());return}
+ if(S.view!==home()){setNav(home());return}
+ exitApp();
+}
+function exitApp(){if(navigator.app&&navigator.app.exitApp)navigator.app.exitApp()}
+document.addEventListener("deviceready",function(){document.addEventListener("backbutton",onBack,false)},false);
+
+restore();
+draw();
+</script>
+</body>
+</html>
